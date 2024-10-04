@@ -37,6 +37,8 @@ import yargs from 'yargs'
 import CloudDBAdapter from './lib/cloudDBAdapter.js'
 import { MongoDB } from './lib/mongoDB.js'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
+import Authentication from './mongo/auth.js'
+import mongoose from 'mongoose'
 
 const {
   DisconnectReason,
@@ -212,7 +214,9 @@ global.loadDatabase = async function loadDatabase() {
 }
 loadDatabase()
 global.authFolder = `session`
-const { state, saveCreds } = await useMultiFileAuthState(global.authFolder)
+await Authentication.connectDB(process.env.DATABASE_URL)
+let authInstance = new Authentication('GuruBot')
+const { state, saveState } = await authInstance.getAuthFromDatabase()
 //let { version, isLatest } = await fetchLatestWaWebVersion()
 
 const connectionOptions = {
@@ -449,7 +453,7 @@ global.reloadHandler = async function (restatConn) {
   conn.onDelete = handler.deleteUpdate.bind(global.conn)
   conn.presenceUpdate = handler.presenceUpdate.bind(global.conn)
   conn.connectionUpdate = connectionUpdate.bind(global.conn)
-  conn.credsUpdate = saveCreds.bind(global.conn, true)
+  conn.credsUpdate = saveState.bind(global.conn, true)
 
   const currentDateTime = new Date()
   const messageDateTime = new Date(conn.ev)
