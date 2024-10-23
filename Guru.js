@@ -8,6 +8,8 @@ import path, { join } from 'path'
 import { platform } from 'process'
 import { fileURLToPath, pathToFileURL } from 'url'
 import * as ws from 'ws'
+import { MongoClient } from 'mongodb'
+import { useMongoDBAuthState } from './mongo/auth.js'
 import processTxtAndSaveCredentials from './lib/makesession.js'
 import clearTmp from './lib/tempclear.js'
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
@@ -37,8 +39,6 @@ import yargs from 'yargs'
 import CloudDBAdapter from './lib/cloudDBAdapter.js'
 import { MongoDB } from './lib/mongoDB.js'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
-import Authentication from './mongo/auth.js'
-import mongoose from 'mongoose'
 
 const {
   DisconnectReason,
@@ -214,9 +214,9 @@ global.loadDatabase = async function loadDatabase() {
 }
 loadDatabase()
 global.authFolder = `session`
-await Authentication.connectDB(process.env.DATABASE_URL)
-let authInstance = new Authentication('GuruBot')
-const { state, saveState } = await authInstance.getAuthFromDatabase()
+const client = await MongoClient.connect(process.env.DATABASE_URL)
+const collection = client.db('guruai').collection('auth-state')
+const { state, saveState } = await useMongoDBAuthState(collection)
 //let { version, isLatest } = await fetchLatestWaWebVersion()
 
 const connectionOptions = {
